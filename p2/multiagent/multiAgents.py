@@ -71,16 +71,30 @@ class ReflexAgent(Agent):
     newPos = successorGameState.getPacmanPosition()
 
     # Boolean grid of if food is in a particular position
-    foodGrid = currentGameState.getFood()
+    foodGrid = currentGameState.getFood().asList()
+
+    # Ghost information that we will need
     newGhostStates = successorGameState.getGhostStates()
     newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-
     ghostPositions = [ghostState.getPosition for ghostState in newGhostStates]
-
-    modifier = 0
     ghostDistances = [manhattanDistance(newPos, thisGhostsDist) for thisGhostsDist in ghostPositions]
 
-    return successorGameState.getScore() * modifier
+
+    # Food information that we will also need
+    activeFood = [manhattanDistance(newPos, food) for food in foodGrid if food]
+    closestActiveFood = min(activeFood)
+
+    # We want a larger number if the ghosts are far away, and if food is close.
+        # Smaller if ghosts are closer and or food is farther away.
+
+    # Looks like ghost dist / food dist properly shows this behavior
+        # TEST sum of all ghost dist / closest food dist
+        # TEST closest ghost dist / closest food dist
+        # TEST sum of ghost dists / sum of food dists
+    modifier = 0
+
+
+    return modifier
 
 
 def scoreEvaluationFunction(currentGameState):
