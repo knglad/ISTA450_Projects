@@ -86,12 +86,25 @@ class ReflexAgent(Agent):
 
     # We want a larger number if the ghosts are far away, and if food is close.
         # Smaller if ghosts are closer and or food is farther away.
+        # Looks like ghost dist / food dist properly shows this behavior
 
-    # Looks like ghost dist / food dist properly shows this behavior
-        # TEST sum of all ghost dist / closest food dist
-        # TEST closest ghost dist / closest food dist
-        # TEST sum of ghost dists / sum of food dists
+
+
     modifier = 0
+
+        # TEST sum of all (ghost dist / closest food dist)
+    for ghostDist in ghostDistances:
+        modifier += ghostDist / closestActiveFood
+
+        # TEST closest ghost dist / closest food dist
+    #modifier += min(ghostDistances) / closestActiveFood
+
+        # TEST sum of ghost dists / sum of food dists
+    #for ghostDist in ghostDistances:
+        #sumGhostDist += ghostDist
+    #for foodDist in activeFood:
+        #sumFoodDist += foodDist
+    #return modifier += sumGhostDist / sumFoodDist
 
 
     return modifier

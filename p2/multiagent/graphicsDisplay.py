@@ -8,6 +8,7 @@
 
 from graphicsUtils import *
 from game import Directions
+import math
 
 
 ###########################
