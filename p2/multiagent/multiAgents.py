@@ -96,6 +96,10 @@ class ReflexAgent(Agent):
     for ghostDist in ghostDistances:
       modifier += ghostDist / (closestActiveFood + 1)
 
+    if newScaredTimes[0] > 0:
+      modifier += ghostDist + closestActiveFood
+
+
         # TEST closest ghost dist / closest food dist
     #modifier += min(ghostDistances) / closestActiveFood
 
@@ -167,8 +171,80 @@ class MinimaxAgent(MultiAgentSearchAgent):
       gameState.getNumAgents():
         Returns the total number of agents in the game
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    # We need to find our oppositions next best move, so we can predict it
+    def miner(aState, currentDepth, numGhostLayer):
+      # For clarity: numGhostLayer is the ghost number we are working on,
+      # when building this function I thought about each ghost as a layer of successor moves in a tree
+
+      # Helps add some reflex to the agent, without this we lost every time
+      if aState.isWin() or aState.isLose():
+        return self.evaluationFunction(aState)
+
+      # Set our base minimum score very high, since we want the smallest
+      m = 1000000.0
+
+      # Again we loop through ALL possible successors at this depth
+      # we want to find the smallest possible value (his best move)
+      # and we will recursively call this function to look at all ghosts
+      for ghostAction in aState.getLegalActions(numGhostLayer):
+        # Compare lowest 'm' found with the next legal action
+        # maxer moves the depth forward, and is what controls it
+        if numGhostLayer == aState.getNumAgents() - 1:
+          # We've checked all the ghosts recursively, NOW we want to get the next max
+          m = min(m, maxer(aState.generateSuccessor(numGhostLayer, ghostAction), currentDepth))
+        else:
+          # This allows us to use the depth recursion to check EACH ghost
+          m = min(m, miner(aState.generateSuccessor(numGhostLayer, ghostAction), currentDepth, numGhostLayer + 1))
+
+      # We've looked at ALL the ghosts and found the smallest one
+      return m
+
+
+    # We need to get the max value of our possible moves
+    def maxer(aState, currentDepth):
+      futureDepth = currentDepth + 1
+
+      # Stops the recursion, or the insanity before python breaks, also speeds it up just enough to win (I believe)
+      if aState.isWin() or aState.isLose() or futureDepth == self.depth:
+        return self.evaluationFunction(aState)
+
+      # Default the max to be tiny, so anything is better
+      m = -1000000.0
+
+      # Look through all the possible actions of PACMAN
+      # and compare the max possible next move from the ghosts 'm'
+      for pacManAction in aState.getLegalActions(0):
+        # Update 'm' possibly from the successors of all legal actions
+        # '1' starts checking the smallest next move from the FIRST ghost
+        # miner will recursively look at ALL ghosts and give me their best move
+        m = max(m, miner(aState.generateSuccessor(0, pacManAction), futureDepth, 1))
+
+      # We've looked through ALL possible successors currently
+      return m
+
+
+    # Okay now we use those helper functions
+    allPacManLegalActions = gameState.getLegalActions(0)
+    # I'm seeing a pattern in these saved variables...
+    currMax = -1000000
+    # Seriously, it fought me for ever until I facepalmed at what was wrong
+    storedBestAction = 'see python, its initialized!'
+
+    # Look at ALL actions pacman can take currently
+    for action in allPacManLegalActions:
+      # We always start at depth 0
+      startDepth = 0
+      # Get the BEST next move, maxer looks through the ghosts next moves for us
+      bestMove = maxer(gameState.generateSuccessor(0, action), startDepth)
+
+      # Obligatory update based on findings so far
+      if currMax < bestMove:
+        currMax = bestMove
+        storedBestAction = action
+
+    return storedBestAction
+
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
