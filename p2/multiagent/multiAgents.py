@@ -76,7 +76,7 @@ class ReflexAgent(Agent):
     # Ghost information that we will need
     newGhostStates = successorGameState.getGhostStates()
     newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-    ghostPositions = [ghostState.getPosition for ghostState in newGhostStates]
+    ghostPositions = [ghostState.getPosition() for ghostState in newGhostStates]
     ghostDistances = [manhattanDistance(newPos, thisGhostsDist) for thisGhostsDist in ghostPositions]
 
 
@@ -94,7 +94,7 @@ class ReflexAgent(Agent):
 
         # TEST sum of all (ghost dist / closest food dist)
     for ghostDist in ghostDistances:
-        modifier += ghostDist / closestActiveFood
+      modifier += ghostDist / (closestActiveFood + 1)
 
         # TEST closest ghost dist / closest food dist
     #modifier += min(ghostDistances) / closestActiveFood
