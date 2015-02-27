@@ -356,10 +356,74 @@ def betterEvaluationFunction(currentGameState):
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION: in essence bad_features / good_features with various weights
+      Stopping takes the bad total and triples it
+      Take the sum of all the active ghosts distances and add it to the bad score
+
+      Food distances are all added into the good score, we want to account for all food when we move so we are
+        closer to as much food as possible per move
+      Pellets are a large boon for PacMan as he can then eat ghosts, we take the distance to each pellet and gave
+        it a 2x multiplier
+      On top of that any movement towards a ghost that has a scared timer on results in a 4x multiplier as it reduces
+        nearby threats (thus maximizing our food per move consumption) and gives a large amount of points
   """
-  "*** YOUR CODE HERE ***"
-  util.raiseNotDefined()
+  # Lets try taking everything we DONT want on put it on top,
+  # while taking everything we WANT to get on bottom.
+
+  bad_things_total = 0
+  good_things_total = 0
+
+  # ==================================================================================
+
+  # Useful information you can extract from a GameState (pacman.py)
+  successorGameState = currentGameState.generatePacmanSuccessor(currentGameState)
+  # (row, column)
+  newPos = successorGameState.getPacmanPosition()
+  # Boolean grid of if food is in a particular position
+  foodGrid = currentGameState.getFood().asList()
+  # Food information that we will also need
+  activeFood = [manhattanDistance(newPos, food) for food in foodGrid if food]
+
+  # Things we hate
+  # Ghosts
+  # Ghost information that we will need
+  newGhostStates = successorGameState.getGhostStates()
+  newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+  ghostPositions = [ghostState.getPosition() for ghostState in newGhostStates]
+  ghostDistances = [manhattanDistance(newPos, thisGhostsDist) for thisGhostsDist in ghostPositions]
+
+  for ghostDist in ghostDistances:
+    bad_things_total += ghostDist
+
+    # Stopping
+  if newPos == currentGameState.getPosition():
+    bad_things_total *= 3
+
+
+    # =====================================================
+
+    # Things we like
+    # food
+  for foodDist in activeFood:
+    good_things_total += foodDist
+
+    # pellets -- we want to weigh getting these higher, as they give us safety and a higher score
+  pelletDists = [manhattanDistance(newPos, pPos) for pPos in currentGameState.getCapsules()]
+  for pelletDist in pelletDists:
+    good_things_total += pelletDist * 2
+
+    # eating ghosts -- also want to score this high, in fact higher than the pellets
+  for ghostIndex in range(currentGameState.getNumAgents()):
+    if not ghostIndex == 0:
+      # Check its timer and distance
+      if newScaredTimes[ghostIndex] > 2:  # I say at least two moves to get to it
+        good_things_total += ghostDistances[ghostIndex] * 4
+
+  return bad_things_total / good_things_total
+
+
+# ====================================================================================
+
 
 # Abbreviation
 better = betterEvaluationFunction
