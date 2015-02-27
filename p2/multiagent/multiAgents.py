@@ -256,8 +256,83 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
     """
       Returns the minimax action using self.depth and self.evaluationFunction
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    alpha = -1000000.0
+    beta = 1000000.0
+
+    # We need to find our oppositions next best move, so we can predict it
+    def miner(aState, currentDepth, numGhostLayer, a, b):
+      # For clarity: numGhostLayer is the ghost number we are working on,
+      # when building this function I thought about each ghost as a layer of successor moves in a tree
+
+
+      if aState.isWin() or aState.isLose():
+        return self.evaluationFunction(aState)
+
+      # Set our base minimum score very high, since we want the smallest
+      m = 1000000.0
+
+      for ghostAction in aState.getLegalActions(numGhostLayer):
+        if numGhostLayer == aState.getNumAgents() - 1:
+          # We've checked all the ghosts recursively, NOW we want to get the next max
+          m = min(m, maxer(aState.generateSuccessor(numGhostLayer, ghostAction), currentDepth, a, b))
+        else:
+          # This allows us to use the depth recursion to check EACH ghost
+          m = min(m, miner(aState.generateSuccessor(numGhostLayer, ghostAction), currentDepth, numGhostLayer + 1, a, b))
+
+        # Is our calculated 'm' smaller or atleast the same as our alpha value?
+        if m <= a:
+          return m
+        # oh it isn't, well then lets see if we can update our beta value and try to speed it up next time.
+        b = min(b, m)
+      # We've looked at ALL the ghosts and found the smallest one
+      return m
+
+
+    # ========================================================================================
+    # Nice Comment based spacer for ease of reading
+    # =========================================================================================
+
+    # We need to get the max value of our possible moves
+    def maxer(aState, currentDepth, a, b):
+      futureDepth = currentDepth + 1
+
+      if aState.isWin() or aState.isLose() or futureDepth == self.depth:
+        return self.evaluationFunction(aState)
+
+      m = -1000000.0
+      for pacManAction in aState.getLegalActions(0):
+        m = max(m, miner(aState.generateSuccessor(0, pacManAction), futureDepth, 1, a, b))
+
+        # is our calculated m or max value better than our beta? if so use it! otherwise
+        # just set alpha if 'm' is higher
+        if m >= b:
+          return m
+        a = max(m, a)
+      # We've looked through ALL possible successors currently
+      return m
+
+
+    # Okay now we use those helper functions
+    allPacManLegalActions = gameState.getLegalActions(0)
+    # I'm seeing a pattern in these saved variables...
+    currMax = -1000000
+    # Seriously, it fought me for ever until I facepalmed at what was wrong
+    storedBestAction = 'see python, its initialized!'
+
+    # Look at ALL actions pacman can take currently
+    for action in allPacManLegalActions:
+      # We always start at depth 0
+      startDepth = 0
+      # Get the BEST next move, maxer looks through the ghosts next moves for us
+      bestMove = maxer(gameState.generateSuccessor(0, action), startDepth, alpha, beta)
+
+      # Obligatory update based on findings so far
+      if currMax < bestMove:
+        currMax = bestMove
+        storedBestAction = action
+
+    return storedBestAction
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
