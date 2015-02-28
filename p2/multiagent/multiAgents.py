@@ -341,14 +341,84 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
   """
 
   def getAction(self, gameState):
-    """
-      Returns the expectimax action using self.depth and self.evaluationFunction
+    alpha = -1000000.0
+    beta = 1000000.0
 
-      All ghosts should be modeled as choosing uniformly at random from their
-      legal moves.
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # We need to find our oppositions next best move, so we can predict it
+    def miner(aState, currentDepth, numGhostLayer, a, b):
+      # For clarity: numGhostLayer is the ghost number we are working on,
+      # when building this function I thought about each ghost as a layer of successor moves in a tree
+
+
+      if aState.isWin() or aState.isLose():
+        return self.evaluationFunction(aState)
+
+      # Set our base minimum score very high, since we want the smallest
+      m = 1000000.0
+      numOfPossibilities = len(aState.getLegalActions(numGhostLayer))
+
+      for ghostAction in aState.getLegalActions(numGhostLayer):
+        if numGhostLayer == aState.getNumAgents() - 1:
+          # We've checked all the ghosts recursively, NOW we want to get the next max
+          m = (1 / numOfPossibilities) * min(m,
+                                             maxer(aState.generateSuccessor(numGhostLayer, ghostAction), currentDepth,
+                                                   a, b))
+        else:
+          # This allows us to use the depth recursion to check EACH ghost
+          m = (1 / numOfPossibilities) * min(m,
+                                             miner(aState.generateSuccessor(numGhostLayer, ghostAction), currentDepth,
+                                                   numGhostLayer + 1, a, b))
+
+        # Is our calculated 'm' smaller or atleast the same as our alpha value?
+        if m <= a:
+          return m
+        b = min(b, m)
+      # We've looked at ALL the ghosts and found the smallest one
+      return m
+
+
+      # ========================================================================================
+      # Nice Comment based spacer for ease of reading
+      # =========================================================================================
+
+      # We need to get the max value of our possible moves
+
+    def maxer(aState, currentDepth, a, b):
+      futureDepth = currentDepth + 1
+
+      if aState.isWin() or aState.isLose() or futureDepth == self.depth:
+        return self.evaluationFunction(aState)
+
+      m = -1000000.0
+      for pacManAction in aState.getLegalActions(0):
+        m = max(m, miner(aState.generateSuccessor(0, pacManAction), futureDepth, 1, a, b))
+
+        # is our calculated m or max value better than our beta? if so use it! otherwise
+        # just set alpha if 'm' is higher
+        if m >= b:
+          return m
+        a = max(m, a)
+      return m
+
+
+    allPacManLegalActions = gameState.getLegalActions(0)
+    currMax = -1000000
+    storedBestAction = ''
+
+    # Look at ALL actions pacman can take currently
+    for action in allPacManLegalActions:
+      # We always start at depth 0
+      startDepth = 0
+      # Get the BEST next move, maxer looks through the ghosts next moves for us
+      bestMove = maxer(gameState.generateSuccessor(0, action), startDepth, alpha, beta)
+
+      # Obligatory update based on findings so far
+      if currMax < bestMove:
+        currMax = bestMove
+        storedBestAction = action
+
+    return storedBestAction
+
 
 
 def betterEvaluationFunction(currentGameState):
@@ -367,7 +437,7 @@ def betterEvaluationFunction(currentGameState):
       On top of that any movement towards a ghost that has a scared timer on results in a 4x multiplier as it reduces
         nearby threats (thus maximizing our food per move consumption) and gives a large amount of points
   """
-  # Lets try taking everything we DONT want on put it on top,
+  # Lets try taking everything we DONT want and put it on top,
   # while taking everything we WANT to get on bottom.
 
   bad_things_total = 0
@@ -410,14 +480,14 @@ def betterEvaluationFunction(currentGameState):
     # pellets -- we want to weigh getting these higher, as they give us safety and a higher score
   pelletDists = [manhattanDistance(newPos, pPos) for pPos in currentGameState.getCapsules()]
   for pelletDist in pelletDists:
-    good_things_total += pelletDist * 2
+    good_things_total += pelletDist * (1 / 2)
 
     # eating ghosts -- also want to score this high, in fact higher than the pellets
   for ghostIndex in range(currentGameState.getNumAgents()):
     if not ghostIndex == 0:
       # Check its timer and distance
       if newScaredTimes[ghostIndex] > 2:  # I say at least two moves to get to it
-        good_things_total += ghostDistances[ghostIndex] * 4
+        good_things_total += ghostDistances[ghostIndex] * (1 / 4)
 
   return bad_things_total / good_things_total
 
