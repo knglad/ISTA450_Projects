@@ -407,15 +407,17 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
     # Look at ALL actions pacman can take currently
     for action in allPacManLegalActions:
-      # We always start at depth 0
-      startDepth = 0
-      # Get the BEST next move, maxer looks through the ghosts next moves for us
-      bestMove = maxer(gameState.generateSuccessor(0, action), startDepth, alpha, beta)
+      if not action == "Stop":
 
-      # Obligatory update based on findings so far
-      if currMax < bestMove:
-        currMax = bestMove
-        storedBestAction = action
+        # We always start at depth 0
+        startDepth = 0
+        # Get the BEST next move, maxer looks through the ghosts next moves for us
+        bestMove = maxer(gameState.generateSuccessor(0, action), startDepth, alpha, beta)
+
+        # Obligatory update based on findings so far
+        if currMax < bestMove:
+          currMax = bestMove
+          storedBestAction = action
 
     return storedBestAction
 
@@ -462,32 +464,35 @@ def betterEvaluationFunction(currentGameState):
   ghostPositions = [ghostState.getPosition() for ghostState in newGhostStates]
   ghostDistances = [manhattanDistance(newPos, thisGhostsDist) for thisGhostsDist in ghostPositions]
 
-  for ghostDist in ghostDistances:
-    bad_things_total += ghostDist
+  # for ghostDist in ghostDistances:
+  # bad_things_total += ghostDist
+  bad_things_total += min(ghostDistances)
 
     # Stopping
-  if newPos == currentGameState.getPosition():
-    bad_things_total *= 3
+  if not newPos in activeFood:
+    bad_things_total += 500
 
 
     # =====================================================
 
     # Things we like
     # food
-  for foodDist in activeFood:
-    good_things_total += foodDist
+  # for foodDist in activeFood:
+  # good_things_total += foodDist ** 2
+  good_things_total += min(activeFood)
 
-    # pellets -- we want to weigh getting these higher, as they give us safety and a higher score
+  # pellets -- we want to weigh getting these higher, as they give us safety and a higher score
   pelletDists = [manhattanDistance(newPos, pPos) for pPos in currentGameState.getCapsules()]
   for pelletDist in pelletDists:
-    good_things_total += pelletDist * (1 / 2)
+    good_things_total += pelletDist ** (3)
 
     # eating ghosts -- also want to score this high, in fact higher than the pellets
   for ghostIndex in range(currentGameState.getNumAgents()):
-    if not ghostIndex == 0:
-      # Check its timer and distance
-      if newScaredTimes[ghostIndex] > 2:  # I say at least two moves to get to it
-        good_things_total += ghostDistances[ghostIndex] * (1 / 4)
+    # Check its timer and distance
+    if newScaredTimes[ghostIndex] > 2:  # I say at least two moves to get to it
+      good_things_total += ghostDistances[ghostIndex] ** (4)
+
+  bad_things_total += currentGameState.getScore()
 
   return bad_things_total / good_things_total
 
